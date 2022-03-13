@@ -1,7 +1,7 @@
 import os
-from flask import Flask, render_template, request, redirect, send_file
+from flask import Flask, render_template, request, redirect, send_file, url_for
+from helpers import upload_file_to_s3
 from s3_functions import upload_file
-from werkzeug.utils import secure_filename
 from urllib.request import urlretrieve
 import joblib
 
@@ -13,17 +13,33 @@ from matplotlib import pyplot as plt
 
 app = Flask(__name__)
 
-UPLOAD_FOLDER = "uploads"
-BUCKET = "oralsnap-bucket"
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+BUCKET_NAME = os.getenv("AWS_BUCKET_NAME")
+UPLOAD_URL = "https://s3.amazonaws.com/${BUCKET_NAME}$"
 
 @app.route("/")
 def home():
     return "<p>Sample response from OralSnap app!</p>"
 
+# function to check file extension
+def allowed_file(filename):
+    return '.' in filename and \
+        filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-@app.route('/predict', methods=['POST'])
-def predict(filename):
-    urlretrieve("https://s3.amazonaws.com/${BUCKET}$/${UPLOAD_FOLDER}$/${filename}$", "uploaded_image.png")
+@app.route("/upload", methods=["POST"])
+def create():
+    # check whether the file extension is allowed (eg. png,jpeg,jpg)
+    if file and allowed_file(file.filename):
+        output = upload_file_to_s3(file)
+        return redirect(url_for('analysis', URL=output))
+
+    else:
+        flash("Please try again.")
+        return redirect(url_for('new'))
+
+@app.route('/predict')
+def analysis(filename):
+    urlretrieve(request.args.get('URL'), "uploaded_image.png")
     img = Image.open("uploaded_image.png")
     img = img.convert('RGB')
 
@@ -67,14 +83,9 @@ def predict(filename):
     img2_fg = cv2.bitwise_and(image, image, mask = mask)
     result = cv2.add(img1_bg,img2_fg)
 
-    upload(result)
+    output_image = upload_file_to_s3(result)
 
-    response = {
-    "method": "POST",
-    "status": 200
-    }
-
-    return jsonify(response)
+    return output_image
 
 
 if __name__ == '__main__':
