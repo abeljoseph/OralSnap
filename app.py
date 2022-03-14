@@ -92,6 +92,5 @@ def create():
 
 
 if __name__ == '__main__':
-    port = 5000 + random.randint(0, 999)
     model = joblib.load('trained_model.joblib')
-    app.run(debug=True, port=port)
+    app.run(debug=True)
