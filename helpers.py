@@ -10,16 +10,15 @@ s3 = boto3.client(
 
 def upload_file_to_s3(file, acl="public-read"):
     filename = secure_filename(file.filename)
-    try:
-        s3.upload_fileobj(
-            file,
-            os.getenv("AWS_BUCKET_NAME"),
-            file.filename,
-            ExtraArgs={
-                "ACL": acl,
-                "ContentType": file.content_type
-            }
-        )
+    s3.upload_fileobj(
+        file,
+        os.getenv("AWS_BUCKET_NAME"),
+        file.filename,
+        ExtraArgs={
+            "ACL": acl,
+            "ContentType": file.content_type
+        }
+    )
 
     # after upload file to s3 bucket, return filename of the uploaded file
     return file.filename
