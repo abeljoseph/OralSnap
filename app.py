@@ -38,7 +38,7 @@ def create():
         return redirect(url_for('new'))
 
 @app.route('/predict')
-def analysis(filename):
+def analysis():
     urlretrieve(request.args.get('URL'), "uploaded_image.png")
     img = Image.open("uploaded_image.png")
     img = img.convert('RGB')
