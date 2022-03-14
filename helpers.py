@@ -8,17 +8,27 @@ s3 = boto3.client(
     aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY')
 )
 
-def upload_file_to_s3(file, acl="public-read"):
-    filename = secure_filename(file.filename)
+def upload_file_to_s3(file, acl="public-read", filename="processed_image.png"):
     s3.upload_fileobj(
-        file,
-        os.getenv("AWS_BUCKET_NAME"),
-        file.filename,
-        ExtraArgs={
-            "ACL": acl,
-            "ContentType": file.content_type
-        }
-    )
-
-    # after upload file to s3 bucket, return filename of the uploaded file
-    return file.filename
+            file,
+            os.getenv("AWS_BUCKET_NAME"),
+            filename,
+            ExtraArgs={
+                "ACL": acl
+            }
+        )
+        # after upload file to s3 bucket, return filename of the uploaded file
+    return filename
+    # if hasattr(file, 'filename'):
+    #     filename = secure_filename(file.filename)
+    #     s3.upload_fileobj(
+    #         file,
+    #         os.getenv("AWS_BUCKET_NAME"),
+    #         filename,
+    #         ExtraArgs={
+    #             "ACL": acl,
+    #             "ContentType": file.content_type
+    #         }
+    #     )
+    #     # after upload file to s3 bucket, return filename of the uploaded file
+    #     return file.filename
