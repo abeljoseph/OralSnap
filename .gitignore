@@ -1,6 +1,7 @@
 # Cache
 __pycache__/
 *.pyc
+.DS_Store
 
 # Virtual Environment
 venv/

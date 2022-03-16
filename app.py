@@ -1,6 +1,6 @@
 import os
-from flask import Flask, render_template, request, redirect, send_file, url_for
-from helpers import upload_file_to_s3
+from flask import Flask, render_template, request, redirect, send_file, url_for, jsonify
+from backend.helpers import upload_file_to_s3
 from urllib.request import urlretrieve
 import joblib
 from datetime import datetime
@@ -49,6 +49,8 @@ def create():
 
 @app.route('/predict')
 def analysis():
+    decayCount = 0
+    isDecay = False
     imagePath = request.args.get('URL')[len(UPLOAD_URL):]
     urlretrieve(request.args.get('URL'), imagePath)
     img = Image.open(imagePath)
@@ -75,13 +77,14 @@ def analysis():
 
     colors = np.array(colors)
     # Load model
-    model = joblib.load('trained_model.joblib')
+    model = joblib.load('backend/trained_model.joblib')
     predictor = np.array( model.predict(colors) ).reshape(width, height)
 
     for x in range(0, width):
         for y in range(0, height):
             if predictor[x][y] == 0:
                 # RED - Caries
+                decayCount += 1
                 image[x][y] = [255 , 0, 0]
             else:
                 # WHITE - Healthy Teeth or Gums
@@ -102,10 +105,16 @@ def analysis():
     with open(outputPath, 'rb') as data:
         output_image = upload_file_to_s3(data, filename=outputPath)
     
-    # Uncomment to get image URL
-    # return UPLOAD_URL + output_image
+    if decayCount > 0:
+        isDecay = True
+    response = {
+        "decay": isDecay, # True or False
+        "imageURL": UPLOAD_URL + output_image # string: URL
+    }
+    # Uncomment to get json response
+    return jsonify(response)
     # Uncomment to render image on page
-    return render_template('response.html', output_image = UPLOAD_URL + output_image)
+    # return render_template('response.html', output_image = UPLOAD_URL + output_image)
 
 
 if __name__ == '__main__':
