@@ -1,4 +1,4 @@
-import boto3, botocore
+import boto3
 import os
 from werkzeug.utils import secure_filename
 
@@ -9,26 +9,15 @@ s3 = boto3.client(
 )
 
 def upload_file_to_s3(file, acl="public-read", filename="processed_image.png"):
+    # filename = secure_filename(file.filename)
     s3.upload_fileobj(
             file,
             os.getenv("AWS_BUCKET_NAME"),
             filename,
             ExtraArgs={
                 "ACL": acl
+                # "ContentType": file.content_type
             }
         )
         # after upload file to s3 bucket, return filename of the uploaded file
     return filename
-    # if hasattr(file, 'filename'):
-    #     filename = secure_filename(file.filename)
-    #     s3.upload_fileobj(
-    #         file,
-    #         os.getenv("AWS_BUCKET_NAME"),
-    #         filename,
-    #         ExtraArgs={
-    #             "ACL": acl,
-    #             "ContentType": file.content_type
-    #         }
-    #     )
-    #     # after upload file to s3 bucket, return filename of the uploaded file
-    #     return file.filename

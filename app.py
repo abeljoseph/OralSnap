@@ -1,17 +1,18 @@
 import os
-from flask import Flask, render_template, request, redirect, send_file, url_for, jsonify
+from flask import Flask, render_template, request, redirect, send_file, url_for, jsonify, flash
 from backend.helpers import upload_file_to_s3
 from urllib.request import urlretrieve
 import joblib
 from datetime import datetime
+from io import BytesIO
 
-from PIL import Image, ImageColor
+from PIL import Image
 import cv2
 import numpy as np
-import pandas as pd
-from matplotlib import pyplot as plt
 
 app = Flask(__name__)
+app.config['SECRET KEY'] = 'a secret key'
+app.secret_key = 'super secret key'
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 BUCKET_NAME = os.getenv("AWS_BUCKET_NAME")
@@ -26,10 +27,18 @@ def allowed_file(filename):
     return '.' in filename and \
         filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def detect_blur(image, threshold=90):
+    laplacian_var = cv2.Laplacian(image, cv2.CV_64F).var()
+    if laplacian_var > threshold:
+        return True
+    return False
+
 @app.route("/upload", methods=["POST"])
 def create():
+    # isBlurry = False
     if request.method == 'POST':
         file = request.files['file']
+
         # Check whether the file extension is allowed (eg. png,jpeg,jpg)
         if file and allowed_file(file.filename):
             dateTimeObj = datetime.now()
@@ -45,7 +54,7 @@ def create():
             return redirect(url_for('analysis', URL=img))
         else:
             flash("Please try again.")
-            return redirect(url_for('new'))
+            return redirect(url_for('home'))
 
 @app.route('/predict')
 def analysis():
@@ -53,6 +62,7 @@ def analysis():
     isDecay = False
     imagePath = request.args.get('URL')[len(UPLOAD_URL):]
     urlretrieve(request.args.get('URL'), imagePath)
+
     img = Image.open(imagePath)
     img = img.convert('RGB')
 
